@@ -24,7 +24,7 @@ class YOLOv2(nn.Module):
         # Currently I removed the passthrough layer for simplicity
         self.conv21 = nn.Conv2d(1024, 1024, kernel_size=3, stride=1, padding=1)
         self.bn21 = nn.BatchNorm2d(1024)
-        # Output: 5boxes * (4coordinates + １confidence + 20classes)
+        # Outputs: 5boxes * (4coordinates + 1confidence + 20classes)
         self.conv22 = nn.Conv2d(1024, 5*(5+20), kernel_size=1, stride=1, padding=0)
 
     def _make_layers(self, cfg, in_planes):
@@ -54,4 +54,4 @@ def test():
     y = net(Variable(torch.randn(1,3,416,416)))
     print(y.size())
 
-test()
+# test()
