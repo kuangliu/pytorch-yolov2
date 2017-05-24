@@ -29,7 +29,7 @@ def get_mean_and_std(dataset, max_load=10000):
     std.div_(N)
     return mean, std
 
-def mask_select(input, mask, dim):
+def mask_select(input, mask, dim=0):
     '''Select tensor rows/cols using a mask tensor.
 
     Args:
@@ -63,23 +63,18 @@ def mask_select(input, mask, dim):
     index = mask.nonzero().squeeze(1)
     return input.index_select(dim, index)
 
-def iou(box1, box2, order='xyxy'):
+def iou(box1, box2):
     '''Compute the intersection over union of two set of boxes.
+
+    box1, box2 are as: [xmin, ymin, xmax, ymax].
+
     Args:
       box1: (tensor) bounding boxes, sized [N,4].
       box2: (tensor) bounding boxes, sized [M,4].
-      order: (str) 'xyxy' or 'xywh'.
 
     Return:
       (tensor) iou, sized [N,M].
     '''
-    if order == 'xywh':
-        # convert xywh to xyxy
-        box1 = box1.clone()
-        box2 = box2.clone()
-        box1[:,2:] += box1[:,:2]
-        box2[:,2:] += box2[:,:2]
-
     N = box1.size(0)
     M = box2.size(0)
 

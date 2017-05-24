@@ -52,6 +52,6 @@ class YOLOv2(nn.Module):
 def test():
     net = YOLOv2()
     y = net(Variable(torch.randn(1,3,416,416)))
-    print(y.size())
+    print(y.size())  # [1,125,13,13]
 
 # test()

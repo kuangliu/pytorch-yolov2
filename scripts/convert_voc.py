@@ -1,6 +1,6 @@
 '''Convert VOC PASCAL 2007/2012 xml annotations to a list file.
 
-The list format is as:
+The list file is like:
 
     img.jpg width height xmin ymin xmax ymax label xmin ymin xmax ymax label ...
 '''
