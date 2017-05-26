@@ -32,9 +32,9 @@ VOC_LABELS = (
     'tvmonitor',
 )
 
-xml_dir = '/mnt/hgfs/D/download/PASCAL VOC/train_07/'
+xml_dir = '/mnt/hgfs/D/download/PASCAL VOC/test_12/'
 
-f = open('voc07_train.txt', 'w')
+f = open('voc12_test.txt', 'w')
 for xml_name in os.listdir(xml_dir):
     print('converting %s' % xml_name)
     img_name = xml_name[:-4]+'.jpg'
@@ -46,7 +46,6 @@ for xml_name in os.listdir(xml_dir):
         if child.tag == 'size':
             width = child.find('width').text
             height = child.find('height').text
-            annos.append('%s %s' % (width, height))
 
         if child.tag == 'object':
             bbox = child.find('bndbox')
@@ -56,5 +55,6 @@ for xml_name in os.listdir(xml_dir):
             ymax = bbox.find('ymax').text
             class_label = VOC_LABELS.index(child.find('name').text)
             annos.append('%s %s %s %s %s' % (xmin,ymin,xmax,ymax,class_label))
+    annos = ['%s %s' % (width, height)] + annos
     f.write('%s\n' % ' '.join(annos))
 f.close()
