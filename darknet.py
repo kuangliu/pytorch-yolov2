@@ -1,4 +1,4 @@
-'''YOLOv2/Darknet in PyTorch.'''
+'''Darknet in PyTorch.'''
 import torch
 import torch.nn as nn
 import torch.nn.init as init
@@ -7,12 +7,12 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 
-class YOLOv2(nn.Module):
+class Darknet(nn.Module):
     cfg1 = [32, 'M', 64, 'M', 128, 64, 128, 'M', 256, 128, 256, 'M', 512, 256, 512, 256, 512]  # conv1 - conv13
     cfg2 = ['M', 1024, 512, 1024, 512, 1024]  # conv14 - conv18
 
     def __init__(self):
-        super(YOLOv2, self).__init__()
+        super(Darknet, self).__init__()
         self.layer1 = self._make_layers(self.cfg1, in_planes=3)
         self.layer2 = self._make_layers(self.cfg2, in_planes=512)
 
@@ -50,7 +50,7 @@ class YOLOv2(nn.Module):
 
 
 def test():
-    net = YOLOv2()
+    net = Darknet()
     y = net(Variable(torch.randn(1,3,416,416)))
     print(y.size())  # [1,125,13,13]
 

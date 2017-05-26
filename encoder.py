@@ -1,4 +1,5 @@
 '''Encode target locations and class labels.'''
+import math
 import torch
 
 import itertools
@@ -18,7 +19,7 @@ class DataEncoder:
           input_size: (int) model input size.
 
         Returns:
-          (tensor) encoded bounding boxes, sized [5*4,fmsize,fmsize].
+          (tensor) encoded bounding boxes, sized [5,4,fmsize,fmsize].
           (tensor) class labels, sized [fmsize,fmsize].
         '''
         num_boxes = len(boxes)
@@ -36,18 +37,16 @@ class DataEncoder:
         tx = (bx - bx.floor()) / fmsize  # [0,1]
         ty = (by - by.floor()) / fmsize  # [0,1]
 
-        loc = torch.zeros(fmsize, fmsize, 5, 4)  # 5boxes * 4coords
-        conf = torch.zeros(fmsize, fmsize)
+        loc = torch.zeros(5,4,fmsize,fmsize)  # 5boxes * 4coords
+        conf = torch.LongTensor(fmsize,fmsize).zero_()
         for i in range(num_boxes):
             cx = int(bx[i])
             cy = int(by[i])
             conf[cy,cx] = classes[i] + 1
             for j, (pw,ph) in enumerate(self.anchors):
-                tw = bw[i] / pw  # [0,1]
-                th = bh[i] / ph  # [0,1]
-                loc[cy,cx,j,:] = torch.Tensor([tx[i], ty[i], tw, th])
-
-        loc = loc.view(fmsize,fmsize,-1).permute(2,0,1)  # [5*4,fmsize,fmsize]
+                tw = math.log(bw[i] / pw)
+                th = math.log(bh[i] / ph)
+                loc[j,:,cy,cx] = torch.Tensor([tx[i], ty[i], tw, th])
         return loc, conf
 
 
