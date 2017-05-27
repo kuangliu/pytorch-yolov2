@@ -73,14 +73,55 @@ def train(epoch):
             loc_targets = loc_targets.cuda()
             conf_targets = conf_targets.cuda()
 
+        images = Variable(images)
+        loc_targets = Variable(loc_targets)
+        conf_targets = Variable(conf_targets)
+
         optimizer.zero_grad()
-        outputs = net(Variable(images))
-        loss = criterion(outputs, Variable(loc_targets), Variable(conf_targets))
+        outputs = net(images)
+        loss = criterion(outputs, loc_targets, conf_targets)
         loss.backward()
         optimizer.step()
 
         train_loss += loss.data[0]
         print('%.3f %.3f' % (loss.data[0], train_loss/(batch_idx+1)))
 
+# Test
+def test(epoch):
+    print('\nTest')
+    net.eval()
+    test_loss = 0
+    for batch_idx, (images, loc_targets, conf_targets) in enumerate(testloader):
+        if use_cuda:
+            images = images.cuda()
+            loc_targets = loc_targets.cuda()
+            conf_targets = conf_targets.cuda()
+
+        images = Variable(images, volatile=True)
+        loc_targets = Variable(loc_targets)
+        conf_targets = Variable(conf_targets)
+
+        outputs = net(images)
+        loss = criterion(outputs, loc_targets, conf_targets)
+        test_loss += loss.data[0]
+        print('%.3f %.3f' % (loss.data[0], test_loss/(batch_idx+1)))
+
+    # Save checkpoint.
+    global best_loss
+    test_loss /= len(testloader)
+    if test_loss < best_loss:
+        print('Saving..')
+        state = {
+            'net': net.module.state_dict(),
+            'loss': test_loss,
+            'epoch': epoch,
+        }
+        if not os.path.isdir('checkpoint'):
+            os.mkdir('checkpoint')
+        torch.save(state, './checkpoint/ckpt.pth')
+        best_loss = test_loss
+
+
 for epoch in range(start_epoch, start_epoch+200):
     train(epoch)
+    test(epoch)
