@@ -17,6 +17,7 @@ import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
 
+from utils import iou
 from encoder import DataEncoder
 from PIL import Image, ImageOps
 
@@ -160,8 +161,8 @@ class ListDataset(data.Dataset):
 
                 selected_boxes = boxes.index_select(0, mask.nonzero().squeeze(1))
 
-                iou = self.data_encoder.iou(selected_boxes, roi)
-                if iou.min() < min_iou:
+                ious = iou(selected_boxes, roi)
+                if ious.min() < min_iou:
                     continue
 
                 img = img.crop((x, y, x+w, y+h))

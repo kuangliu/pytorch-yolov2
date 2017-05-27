@@ -14,7 +14,6 @@ import torchvision.transforms as transforms
 
 from loss import YOLOLoss
 from darknet import Darknet
-from utils import progress_bar
 from datagen import ListDataset
 
 from torch.autograd import Variable
@@ -36,11 +35,11 @@ transform = transforms.Compose([transforms.ToTensor(),
 
 trainset = ListDataset(root='/search/liukuang/data/VOC2012_trainval_test_images',
                        list_file='./voc_data/voc12_train.txt', train=True, transform=transform)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True, num_workers=4)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True, num_workers=4)
 
 testset = ListDataset(root='/search/liukuang/data/VOC2012_trainval_test_images',
                       list_file='./voc_data/voc12_test.txt', train=False, transform=transform)
-testloader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False, num_workers=4)
+testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False, num_workers=4)
 
 # Model
 net = Darknet()

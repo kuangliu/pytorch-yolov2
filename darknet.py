@@ -8,8 +8,9 @@ from torch.autograd import Variable
 
 
 class Darknet(nn.Module):
-    cfg1 = [32, 'M', 64, 'M', 128, 64, 128, 'M', 256, 128, 256, 'M', 512, 256, 512, 256, 512]  # conv1 - conv13
-    cfg2 = ['M', 1024, 512, 1024, 512, 1024]  # conv14 - conv18
+    # (64,1) means conv kernel size is 1, by default is 3.
+    cfg1 = [32, 'M', 64, 'M', 128, (64,1), 128, 'M', 256, (128,1), 256, 'M', 512, (256,1), 512, (256,1), 512]  # conv1 - conv13
+    cfg2 = ['M', 1024, (512,1), 1024, (512,1), 1024]  # conv14 - conv18
 
     def __init__(self):
         super(Darknet, self).__init__()
@@ -33,10 +34,12 @@ class Darknet(nn.Module):
             if x == 'M':
                 layers += [nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True)]
             else:
-                layers += [nn.Conv2d(in_planes, x, kernel_size=3, padding=1),
-                           nn.BatchNorm2d(x),
+                out_planes = x[0] if isinstance(x, tuple) else x
+                ksize = x[1] if isinstance(x, tuple) else 3
+                layers += [nn.Conv2d(in_planes, out_planes, kernel_size=ksize, padding=(ksize-1)//2),
+                           nn.BatchNorm2d(out_planes),
                            nn.ReLU(True)]
-                in_planes = x
+                in_planes = out_planes
         return nn.Sequential(*layers)
 
     def forward(self, x):
