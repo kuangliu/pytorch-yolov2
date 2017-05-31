@@ -49,9 +49,9 @@ if args.resume:
     net.load_state_dict(checkpoint['net'])
     best_loss = checkpoint['loss']
     start_epoch = checkpoint['epoch']
-# else:
-    # Load pretrained Darknet model.
-    # net.load_state_dict(torch.load('./model/ssd.pth'))
+else:
+    # Load pretrained Darknet model
+    net.load_state_dict(torch.load('./model/darknet.pth'))
 
 if use_cuda:
     net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
@@ -105,7 +105,7 @@ def test(epoch):
         test_loss += loss.data[0]
         print('%.3f %.3f' % (loss.data[0], test_loss/(batch_idx+1)))
 
-    # Save checkpoint.
+    # Save checkpoint
     global best_loss
     test_loss /= len(testloader)
     if test_loss < best_loss:

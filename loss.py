@@ -31,12 +31,12 @@ class YOLOLoss(nn.Module):
 
         pos = conf_targets > 0
         num_pos = pos.data.long().sum()
-        mask = pos.view(batch_size,1,1,fmsize,fmsize).expand_as(loc).float()
-        loc_loss = F.smooth_l1_loss(loc * mask, loc_targets * mask, size_average=False)
+        mask = pos.view(batch_size,1,1,fmsize,fmsize).expand_as(loc)
+        loc_loss = F.smooth_l1_loss(loc[mask], loc_targets[mask], size_average=False)
 
-        conf = preds[:,:,4:,:,:]  # [2,5,21,13,13]  [2,13,13]
-        conf = conf.permute(0,1,3,4,2).contiguous().view(-1,21)
-        conf_targets = conf_targets.view(batch_size,1,fmsize,fmsize).expand(batch_size,5,fmsize,fmsize)
+        conf = preds[:,:,4:,:,:]  # [N,5,21,13,13]
+        conf = conf.permute(0,1,3,4,2).contiguous().view(-1,21)  # [N,5,21,13,13] -> [N,5,13,13,21]
+        conf_targets = conf_targets.unsqueeze(1).expand(batch_size,5,fmsize,fmsize)  # [N,13,13] -> [N,1,13,13] -> [N,5,13,13]
         conf_targets = conf_targets.contiguous().view(-1)
         conf_loss = F.cross_entropy(conf, conf_targets, size_average=False)
 
