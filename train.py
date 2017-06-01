@@ -30,8 +30,7 @@ start_epoch = 0  # start from epoch 0 or last epoch
 
 # Data
 print('==> Preparing data..')
-transform = transforms.Compose([transforms.ToTensor(),
-                                transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
+transform = transforms.Compose([transforms.ToTensor()])
 
 trainset = ListDataset(root='/search/liukuang/data/VOC2012_trainval_test_images',
                        list_file='./voc_data/voc12_train.txt', train=True, transform=transform)
