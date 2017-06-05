@@ -1,8 +1,9 @@
 '''Encode target locations and class labels.'''
 import math
 import torch
-
 import itertools
+
+from utils import iou
 
 
 class DataEncoder:
@@ -20,7 +21,7 @@ class DataEncoder:
 
         Returns:
           (tensor) encoded bounding boxes, sized [5,4,fmsize,fmsize].
-          (tensor) class labels, sized [fmsize,fmsize].
+          (tensor) class labels, sized [5,fmsize,fmsize].
         '''
         num_boxes = len(boxes)
         # input_size -> fmsize
@@ -38,15 +39,19 @@ class DataEncoder:
         ty = (by - by.floor()) / fmsize  # [0,1]
 
         loc = torch.zeros(5,4,fmsize,fmsize)  # 5boxes * 4coords
-        conf = torch.LongTensor(fmsize,fmsize).zero_()
-        for i in range(num_boxes):
+        conf = torch.LongTensor(5,fmsize,fmsize).zero_()
+        for i, box in enumerate(boxes):
             cx = int(bx[i])
             cy = int(by[i])
-            conf[cy,cx] = classes[i] + 1
             for j, (pw,ph) in enumerate(self.anchors):
                 tw = math.log(bw[i] / pw)
                 th = math.log(bh[i] / ph)
                 loc[j,:,cy,cx] = torch.Tensor([tx[i], ty[i], tw, th])
+
+                anchor_box = torch.Tensor([[box[0], box[1], box[0]+pw*grid_size, box[1]+ph*grid_size]])
+                anchor_box.clamp_(min=0, max=input_size-1)
+                if iou(boxes[i].view(1,-1), anchor_box)[0,0] > 0.5:
+                    conf[j,cy,cx] = classes[i] + 1
         return loc, conf
 
 
@@ -61,8 +66,8 @@ def test():
 
     encoder = DataEncoder()
     loc, conf = encoder.encode(boxes, classes, input_size)
-    print(loc[:,7,4])
     print(loc.size())
     print(conf.size())
+    print(conf)
 
 # test()
