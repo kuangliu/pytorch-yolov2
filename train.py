@@ -34,11 +34,11 @@ transform = transforms.Compose([transforms.ToTensor()])
 
 trainset = ListDataset(root='/search/liukuang/data/VOC2012_trainval_test_images',
                        list_file='./voc_data/voc12_train.txt', train=True, transform=transform)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True, num_workers=4)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True, num_workers=8)
 
 testset = ListDataset(root='/search/liukuang/data/VOC2012_trainval_test_images',
                       list_file='./voc_data/voc12_test.txt', train=False, transform=transform)
-testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False, num_workers=4)
+testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False, num_workers=8)
 
 # Model
 net = Darknet()

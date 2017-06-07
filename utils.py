@@ -1,8 +1,4 @@
-'''Some helper functions for PyTorch, including:
-    - get_mean_and_std: calculate the mean and std value of dataset.
-    - msr_init: net parameter initialization.
-    - progress_bar: progress bar mimic xlua.progress.
-'''
+'''Some helper functions for PyTorch.'''
 import os
 import sys
 import time
@@ -62,6 +58,29 @@ def mask_select(input, mask, dim=0):
     '''
     index = mask.nonzero().squeeze(1)
     return input.index_select(dim, index)
+
+def meshgrid(x, swap_dims=False):
+    '''Return meshgrid in range x.
+
+    Args:
+      x: (int) mesh range.
+      swap_dims: (bool) swap dims.
+
+    Returns:
+      (tensor) meshgrid, sized [x*x,2]
+
+    Example:
+    >> meshgrid(2)
+    0  0
+    0  1
+    1  0
+    1  1
+    [torch.FloatTensor of size 4x2]
+    '''
+    a = torch.arange(0,x)
+    xx = a.view(-1,1).repeat(1,x).view(-1,1)
+    yy = a.repeat(x,1).view(-1,1)
+    return torch.cat([yy,xx],1) if swap_dims else torch.cat([xx,yy],1)
 
 def iou(box1, box2):
     '''Compute the intersection over union of two set of boxes.
