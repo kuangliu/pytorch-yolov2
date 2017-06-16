@@ -42,8 +42,8 @@ class DataEncoder:
             cx = int(bx[i])
             cy = int(by[i])
             for j, (pw,ph) in enumerate(self.anchors):
-                tw = math.log(bw[i] / pw)
-                th = math.log(bh[i] / ph)
+                tw = bw[i] / pw
+                th = bh[i] / ph
                 loc[j,:,cy,cx] = torch.Tensor([tx[i], ty[i], tw, th])
 
         xy = meshgrid(fmsize, swap_dims=True) + 0.5  # grid center, [fmsize*fmsize,2]

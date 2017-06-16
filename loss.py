@@ -23,7 +23,7 @@ class YOLOLoss(nn.Module):
 
         preds = preds.view(batch_size, 5, 4+21, fmsize, fmsize)
         xy = preds[:,:,:2,:,:].sigmoid()  # x->sigmoid(x), y->sigmoid(y)
-        wh = preds[:,:,2:4,:,:]
+        wh = preds[:,:,2:4,:,:].exp()
         loc = torch.cat([xy,wh], 2)  # [N,5,4,13,13]
 
         pos = conf_targets > 0  # [N,5,13,13]

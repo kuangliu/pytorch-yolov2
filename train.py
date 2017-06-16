@@ -58,7 +58,7 @@ if use_cuda:
     cudnn.benchmark = True
 
 criterion = YOLOLoss()
-optimizer = optim.SGD(net.parameters(), lr=1e-3, momentum=0.9, weight_decay=1e-4)
+optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
 
 # Training
 def train(epoch):
