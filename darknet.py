@@ -38,16 +38,16 @@ class Darknet(nn.Module):
                 ksize = x[1] if isinstance(x, tuple) else 3
                 layers += [nn.Conv2d(in_planes, out_planes, kernel_size=ksize, padding=(ksize-1)//2),
                            nn.BatchNorm2d(out_planes),
-                           nn.ReLU(True)]
+                           nn.LeakyReLU(0.1, True)]
                 in_planes = out_planes
         return nn.Sequential(*layers)
 
     def forward(self, x):
         out = self.layer1(x)
         out = self.layer2(out)
-        out = F.relu(self.bn19(self.conv19(out)))
-        out = F.relu(self.bn20(self.conv20(out)))
-        out = F.relu(self.bn21(self.conv21(out)))
+        out = F.leaky_relu(self.bn19(self.conv19(out)), 0.1)
+        out = F.leaky_relu(self.bn20(self.conv20(out)), 0.1)
+        out = F.leaky_relu(self.bn21(self.conv21(out)), 0.1)
         out = self.conv22(out)
         return out
 
