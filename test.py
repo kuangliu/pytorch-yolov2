@@ -18,13 +18,15 @@ net.eval()
 
 # Load test image
 # img = Image.open('/mnt/hgfs/D/download/PASCAL VOC/voc_all_images/2007_000001.jpg')
-img = Image.open('./imgs/000001.jpg')
+img = Image.open('000001.jpg')
+boxes = torch.Tensor([48, 240, 195, 371, 8, 12, 352, 498]).view(2,4)
+labels = torch.LongTensor([11,14])
 w,h = img.size
+boxes /= torch.Tensor([w,h,w,h]).expand_as(boxes)
 
 # Forward
 img1 = img.resize((416,416))
-transform = transforms.Compose([transforms.ToTensor(),
-                                transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
+transform = transforms.Compose([transforms.ToTensor()])
 img1 = transform(img1)
 
 # Forward
