@@ -36,8 +36,8 @@ class YOLOLoss(nn.Module):
 
         pos_mask = pos.view(-1)  # [N,5,13,13] -> [N*5*13*13,]
         neg_mask = 1 - pos_mask
-        pos_conf_loss = F.cross_entropy(conf[pos_mask.data.nonzero().squeeze(1)], conf_targets[pos_mask])
-        neg_conf_loss = F.cross_entropy(conf[neg_mask.data.nonzero().squeeze(1)], conf_targets[neg_mask])
+        pos_conf_loss = F.cross_entropy(conf[pos_mask.data.nonzero().squeeze(1)], conf_targets[pos_mask], size_average=False)
+        neg_conf_loss = F.cross_entropy(conf[neg_mask.data.nonzero().squeeze(1)], conf_targets[neg_mask], size_average=False)
         conf_loss = pos_conf_loss + 0.5*neg_conf_loss
-        print('%f %f %f' % (5*loc_loss.data[0]/num_pos, pos_conf_loss.data[0], 0.5*neg_conf_loss.data[0]), end=' ')
-        return 5*loc_loss/num_pos + conf_loss
+        print('%f %f %f' % (5*loc_loss.data[0]/num_pos, pos_conf_loss.data[0]/num_pos, 0.5*neg_conf_loss.data[0]/num_pos), end=' ')
+        return 5*loc_loss/num_pos + conf_loss/num_pos

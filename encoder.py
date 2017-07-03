@@ -52,14 +52,13 @@ class DataEncoder:
         for i in range(num_boxes):
             cx = int(bx[i])
             cy = int(by[i])
-            mask = ious[cy,cx,:,i] > 0.5  # [1,1,5,1]
-            conf[:,cy,cx][mask] = 1 + labels[i]
+            _, max_idx = ious[cy,cx,:,i].max(0)
+            j = max_idx[0]
+            conf[j,cy,cx] = 1 + classes[i]
 
-            for j, (pw,ph) in enumerate(self.anchors):
-                if mask.view(-1)[j] != 0:
-                    tw = bw[i] / pw
-                    th = bh[i] / ph
-                    loc[j,:,cy,cx] = torch.Tensor([tx[i], ty[i], tw, th])
+            tw = bw[i] / self.anchors[j][0]
+            th = bh[i] / self.anchors[j][1]
+            loc[j,:,cy,cx] = torch.Tensor([tx[i], ty[i], tw, th])
         return loc, conf
 
     def decode(self, outputs, input_size):
