@@ -74,6 +74,7 @@ class ListDataset(data.Dataset):
           img: (tensor) image tensor.
           loc: (tensor) location targets.
           conf: (tensor) label targets.
+          prob: (tensor) probability of containing the object.
         '''
         # Load image and bbox locations.
         fname = self.fnames[idx]
@@ -95,9 +96,9 @@ class ListDataset(data.Dataset):
         img = img.resize((input_size,input_size))
         img = self.transform(img)
 
-        # Encode loc & conf targets.
-        loc, conf = self.data_encoder.encode(boxes, labels, input_size)
-        return img, loc, conf
+        # Encode data.
+        loc, conf, prob = self.data_encoder.encode(boxes, labels, input_size)
+        return img, loc, conf, prob
 
     def random_flip(self, img, boxes):
         '''Randomly flip the image and adjust the bbox locations.

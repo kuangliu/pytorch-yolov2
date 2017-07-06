@@ -32,11 +32,11 @@ start_epoch = 0  # start from epoch 0 or last epoch
 print('==> Preparing data..')
 transform = transforms.Compose([transforms.ToTensor()])
 
-trainset = ListDataset(root='/search/liukuang/data/VOC2012_trainval_test_images',
+trainset = ListDataset(root='/search/data/user/liukuang/data/VOC2012_trainval_test_images',
                        list_file='./voc_data/voc12_train.txt', train=True, transform=transform)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True, num_workers=8)
 
-testset = ListDataset(root='/search/liukuang/data/VOC2012_trainval_test_images',
+testset = ListDataset(root='/search/data/user/liukuang/data/VOC2012_trainval_test_images',
                       list_file='./voc_data/voc12_test.txt', train=False, transform=transform)
 testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False, num_workers=8)
 
@@ -50,7 +50,8 @@ if args.resume:
     start_epoch = checkpoint['epoch']
 else:
     # Load pretrained Darknet model
-    net.load_state_dict(torch.load('./model/darknet.pth'))
+    # net.load_state_dict(torch.load('./model/darknet.pth'))
+    pass
 
 if use_cuda:
     net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
@@ -65,19 +66,21 @@ def train(epoch):
     print('\nEpoch: %d' % epoch)
     net.train()
     train_loss = 0
-    for batch_idx, (images, loc_targets, conf_targets) in enumerate(trainloader):
+    for batch_idx, (images, loc_targets, conf_targets, prob_targets) in enumerate(trainloader):
         if use_cuda:
             images = images.cuda()
             loc_targets = loc_targets.cuda()
             conf_targets = conf_targets.cuda()
+            prob_targets = prob_targets.cuda()
 
         images = Variable(images)
         loc_targets = Variable(loc_targets)
         conf_targets = Variable(conf_targets)
+        prob_targets = Variable(prob_targets)
 
         optimizer.zero_grad()
         outputs = net(images)
-        loss = criterion(outputs, loc_targets, conf_targets)
+        loss = criterion(outputs, loc_targets, conf_targets, prob_targets)
         loss.backward()
         optimizer.step()
 
@@ -89,18 +92,20 @@ def test(epoch):
     print('\nTest')
     net.eval()
     test_loss = 0
-    for batch_idx, (images, loc_targets, conf_targets) in enumerate(testloader):
+    for batch_idx, (images, loc_targets, conf_targets, prob_targets) in enumerate(testloader):
         if use_cuda:
             images = images.cuda()
             loc_targets = loc_targets.cuda()
             conf_targets = conf_targets.cuda()
+            prob_targets = prob_targets.cuda()
 
         images = Variable(images, volatile=True)
         loc_targets = Variable(loc_targets)
         conf_targets = Variable(conf_targets)
+        prob_targets = Variable(prob_targets)
 
         outputs = net(images)
-        loss = criterion(outputs, loc_targets, conf_targets)
+        loss = criterion(outputs, loc_targets, conf_targets, prob_targets)
         test_loss += loss.data[0]
         print('%.3f %.3f' % (loss.data[0], test_loss/(batch_idx+1)))
 

@@ -171,6 +171,20 @@ def nms(bboxes, scores, threshold=0.5, mode='union'):
         order = order[ids+1]
     return torch.LongTensor(keep)
 
+def softmax(x):
+    '''Softmax along a specific dimension.
+
+    Args:
+      x: (tensor) input tensor, sized [N,D].
+
+    Returns:
+      (tensor) softmaxed tensor, sized [N,D].
+    '''
+    xmax, _ = x.max(1)
+    x_shift = x - xmax.expand_as(x)
+    x_exp = x_shift.exp()
+    return x_exp / x_exp.sum(1).expand_as(x_exp)
+
 def msr_init(net):
     '''Initialize layer parameters.'''
     for layer in net:

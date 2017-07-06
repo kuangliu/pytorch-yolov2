@@ -2,13 +2,13 @@
 import math
 import torch
 
-from utils import iou, nms, meshgrid
+from utils import iou, nms, meshgrid, softmax
 
 
 class DataEncoder:
     def __init__(self):
         self.anchors = [(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]  # anchors from Darknet cfg file
-        # self.anchors = [(0.6240, 1.2133), (1.4300, 2.2075), (2.2360, 4.3081), (4.3940, 6.5976), (9.5680, 9.9493)]  # anchors I get
+        #self.anchors = [(0.6240, 1.2133), (1.4300, 2.2075), (2.2360, 4.3081), (4.3940, 6.5976), (9.5680, 9.9493)]  # anchors I get
 
     def encode(self, boxes, labels, input_size):
         '''Encode target bounding boxes and class labels into YOLOv2 format.
@@ -19,8 +19,9 @@ class DataEncoder:
           input_size: (int) model input size.
 
         Returns:
-          (tensor) encoded bounding boxes, sized [5,4,fmsize,fmsize].
-          (tensor) class labels, sized [5,fmsize,fmsize].
+          loc: (tensor) encoded bounding boxes, sized [5,4,fmsize,fmsize].
+          conf: (tensor) class labels, sized [5,fmsize,fmsize].
+          prob: (tensor) probability of cell is responsible for predicting the object, sized [5,fmsize,fmsize].
         '''
         num_boxes = len(boxes)
         # input_size -> fmsize
@@ -46,20 +47,21 @@ class DataEncoder:
 
         ious = iou(anchor_boxes.view(-1,4), boxes/grid_size)  # [fmsize*fmsize*5, N]
         ious = ious.view(fmsize,fmsize,5,num_boxes)           # [fmsize,fmsize,5,N]
+        prob = ious.max(3)[0].squeeze().permute(2,0,1)
 
-        conf = torch.LongTensor(5,fmsize,fmsize).zero_()
         loc = torch.zeros(5,4,fmsize,fmsize)  # 5boxes * 4coords
+        conf = torch.LongTensor(5,fmsize,fmsize).zero_()
         for i in range(num_boxes):
             cx = int(bx[i])
             cy = int(by[i])
             _, max_idx = ious[cy,cx,:,i].max(0)
             j = max_idx[0]
-            conf[j,cy,cx] = 1 + classes[i]
+            conf[:,cy,cx][j] = labels[i] + 1
 
             tw = bw[i] / self.anchors[j][0]
             th = bh[i] / self.anchors[j][1]
             loc[j,:,cy,cx] = torch.Tensor([tx[i], ty[i], tw, th])
-        return loc, conf
+        return loc, conf, prob
 
     def decode(self, outputs, input_size):
         '''Transform predicted loc/conf back to real bbox locations and class labels.
@@ -86,11 +88,15 @@ class DataEncoder:
         boxes = torch.cat([box_xy-box_wh/2, box_xy+box_wh/2], 1)  # [5,4,13,13]
         boxes = boxes.permute(0,2,3,1).contiguous().view(-1,4)    # [845,4]
 
-        conf = outputs[:,4:,:,:]  # [5,21,13,13]
-        conf = conf.permute(0,2,3,1).contiguous().view(-1,21)  # [845,21]
-        max_conf, max_ids = conf.max(1)  # [845,1]
-        ids = max_ids.squeeze(1).nonzero().squeeze(1)  # [#boxes,]
-        keep = nms(boxes[ids], max_conf[ids].squeeze(1))
+        prob = outputs[:,4,:,:].sigmoid()  # [5,13,13]
+        conf = outputs[:,5:,:,:]  # [5,20,13,13]
+        conf = conf.permute(0,2,3,1).contiguous().view(-1,20)
+        conf = softmax(conf)  # [5*13*13,20]
+
+        score = conf * prob.view(-1).unsqueeze(1).expand_as(conf)  # [5*13*13,20]
+        score = score.max(1)[0].view(-1)  # [5*13*13,]
+        ids = (score>0.5).nonzero().squeeze()
+        keep = nms(boxes[ids], score[ids])
         return boxes[ids][keep] / fmsize
 
 
