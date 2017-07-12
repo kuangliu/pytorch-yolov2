@@ -17,7 +17,7 @@ import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
 
-from utils import iou
+from utils import box_iou
 from encoder import DataEncoder
 from PIL import Image, ImageOps
 
@@ -72,9 +72,9 @@ class ListDataset(data.Dataset):
 
         Returns:
           img: (tensor) image tensor.
-          loc: (tensor) location targets.
-          conf: (tensor) label targets.
-          prob: (tensor) probability of containing the object.
+          loc_targets: (tensor) location targets.
+          cls_targets: (tensor) class label targets.
+          box_targets: (tensor) truth box targets.
         '''
         # Load image and bbox locations.
         fname = self.fnames[idx]
@@ -97,8 +97,8 @@ class ListDataset(data.Dataset):
         img = self.transform(img)
 
         # Encode data.
-        loc, conf, prob = self.data_encoder.encode(boxes, labels, input_size)
-        return img, loc, conf, prob
+        loc_targets, cls_targets, box_targets = self.data_encoder.encode(boxes, labels, input_size)
+        return img, loc_targets, cls_targets, box_targets
 
     def random_flip(self, img, boxes):
         '''Randomly flip the image and adjust the bbox locations.
@@ -162,7 +162,7 @@ class ListDataset(data.Dataset):
 
                 selected_boxes = boxes.index_select(0, mask.nonzero().squeeze(1))
 
-                ious = iou(selected_boxes, roi)
+                ious = box_iou(selected_boxes, roi)
                 if ious.min() < min_iou:
                     continue
 

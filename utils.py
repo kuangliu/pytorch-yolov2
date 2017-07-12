@@ -82,7 +82,7 @@ def meshgrid(x, swap_dims=False):
     yy = a.repeat(x,1).view(-1,1)
     return torch.cat([yy,xx],1) if swap_dims else torch.cat([xx,yy],1)
 
-def iou(box1, box2):
+def box_iou(box1, box2):
     '''Compute the intersection over union of two set of boxes.
 
     box1, box2 are as: [xmin, ymin, xmax, ymax].
@@ -107,7 +107,7 @@ def iou(box1, box2):
         box2[:,2:].unsqueeze(0).expand(N,M,2),  # [M,2] -> [1,M,2] -> [N,M,2]
     )
 
-    wh = (rb - lt).clamp(min=0)  # [N,M,2]
+    wh = (rb-lt).clamp(min=0)  # [N,M,2]
     inter = wh[:,:,0] * wh[:,:,1]  # [N,M]
 
     area1 = (box1[:,2]-box1[:,0]) * (box1[:,3]-box1[:,1])  # [N,]
@@ -118,7 +118,7 @@ def iou(box1, box2):
     iou = inter / (area1 + area2 - inter)
     return iou
 
-def nms(bboxes, scores, threshold=0.5, mode='union'):
+def box_nms(bboxes, scores, threshold=0.5, mode='union'):
     '''Non maximum suppression.
 
     Args:
@@ -197,7 +197,6 @@ def msr_init(net):
             layer.bias.data.zero_()
         elif type(layer) == nn.Linear:
             layer.bias.data.zero_()
-
 
 _, term_width = os.popen('stty size', 'r').read().split()
 term_width = int(term_width)

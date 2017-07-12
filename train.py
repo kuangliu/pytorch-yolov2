@@ -24,21 +24,27 @@ parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
 args = parser.parse_args()
 
-use_cuda = torch.cuda.is_available()
+assert torch.cuda.is_available(), 'Error: CUDA not found!'
 best_loss = float('inf')  # best test loss
 start_epoch = 0  # start from epoch 0 or last epoch
 
 # Data
 print('==> Preparing data..')
+def collate_fn(batch):
+    return torch.stack([x[0] for x in batch]), \
+           torch.stack([x[1] for x in batch]), \
+           torch.stack([x[2] for x in batch]), \
+           [x[3] for x in batch]
+
 transform = transforms.Compose([transforms.ToTensor()])
 
 trainset = ListDataset(root='/search/data/user/liukuang/data/VOC2012_trainval_test_images',
                        list_file='./voc_data/voc12_train.txt', train=True, transform=transform)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True, num_workers=8)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True, num_workers=8, collate_fn=collate_fn)
 
 testset = ListDataset(root='/search/data/user/liukuang/data/VOC2012_trainval_test_images',
                       list_file='./voc_data/voc12_test.txt', train=False, transform=transform)
-testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False, num_workers=8)
+testloader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False, num_workers=8, collate_fn=collate_fn)
 
 # Model
 net = Darknet()
@@ -50,13 +56,11 @@ if args.resume:
     start_epoch = checkpoint['epoch']
 else:
     # Load pretrained Darknet model
-    # net.load_state_dict(torch.load('./model/darknet.pth'))
-    pass
+    net.load_state_dict(torch.load('./model/darknet.pth'))
 
-if use_cuda:
-    net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
-    net.cuda()
-    cudnn.benchmark = True
+net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
+net.cuda()
+cudnn.benchmark = True
 
 criterion = YOLOLoss()
 optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
@@ -66,21 +70,15 @@ def train(epoch):
     print('\nEpoch: %d' % epoch)
     net.train()
     train_loss = 0
-    for batch_idx, (images, loc_targets, conf_targets, prob_targets) in enumerate(trainloader):
-        if use_cuda:
-            images = images.cuda()
-            loc_targets = loc_targets.cuda()
-            conf_targets = conf_targets.cuda()
-            prob_targets = prob_targets.cuda()
-
-        images = Variable(images)
-        loc_targets = Variable(loc_targets)
-        conf_targets = Variable(conf_targets)
-        prob_targets = Variable(prob_targets)
+    for batch_idx, (images, loc_targets, cls_targets, box_targets) in enumerate(trainloader):
+        images = Variable(images.cuda())
+        loc_targets = Variable(loc_targets.cuda())
+        cls_targets = Variable(cls_targets.cuda())
+        box_targets = [Variable(x.cuda()) for x in box_targets]
 
         optimizer.zero_grad()
         outputs = net(images)
-        loss = criterion(outputs, loc_targets, conf_targets, prob_targets)
+        loss = criterion(outputs, loc_targets, cls_targets, box_targets)
         loss.backward()
         optimizer.step()
 
@@ -92,20 +90,14 @@ def test(epoch):
     print('\nTest')
     net.eval()
     test_loss = 0
-    for batch_idx, (images, loc_targets, conf_targets, prob_targets) in enumerate(testloader):
-        if use_cuda:
-            images = images.cuda()
-            loc_targets = loc_targets.cuda()
-            conf_targets = conf_targets.cuda()
-            prob_targets = prob_targets.cuda()
-
-        images = Variable(images, volatile=True)
-        loc_targets = Variable(loc_targets)
-        conf_targets = Variable(conf_targets)
-        prob_targets = Variable(prob_targets)
+    for batch_idx, (images, loc_targets, cls_targets, box_targets) in enumerate(testloader):
+        images = Variable(images.cuda())
+        loc_targets = Variable(loc_targets.cuda())
+        cls_targets = Variable(cls_targets.cuda())
+        box_targets = [Variable(x.cuda()) for x in box_targets]
 
         outputs = net(images)
-        loss = criterion(outputs, loc_targets, conf_targets, prob_targets)
+        loss = criterion(outputs, loc_targets, cls_targets, box_targets)
         test_loss += loss.data[0]
         print('%.3f %.3f' % (loss.data[0], test_loss/(batch_idx+1)))
 
