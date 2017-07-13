@@ -70,18 +70,17 @@ class YOLOLoss(nn.Module):
             iou_target = box_iou(box_pred, box_target)  # [5*13*13, #obj]
             iou_targets[i] = iou_target.max(1)[0].view(5,fmsize,fmsize)  # [5,13,13]
 
-        neg = 1 - pos
-        pos_iou_loss = F.smooth_l1_loss(iou_preds[pos], iou_targets[pos], size_average=False)
-        neg_iou_loss = 0.1 * F.smooth_l1_loss(iou_preds[neg], iou_targets[neg], size_average=False)
-        iou_loss = pos_iou_loss + neg_iou_loss
+        mask = Variable(torch.ones(iou_preds.size()).cuda()) * 0.1  # [N,5,13,13]
+        mask[pos] = 1
+        iou_loss = F.smooth_l1_loss(iou_preds*mask, iou_targets*mask, size_average=False)
 
         ### cls_loss
         cls_preds = preds[:,:,5:,:,:]  # [N,5,20,13,13]
         cls_preds = cls_preds.permute(0,1,3,4,2).contiguous().view(-1,20)  # [N,5,20,13,13] -> [N,5,13,13,20] -> [N*5*13*13,20]
         cls_preds = F.softmax(cls_preds)  # [N*5*13*13,20]
+        cls_preds = cls_preds.view(batch_size,5,fmsize,fmsize,20).permute(0,1,4,2,3)  # [N*5*13*13,20] -> [N,5,20,13,13]
+        pos = cls_targets > 0
+        cls_loss = F.smooth_l1_loss(cls_preds[pos], cls_targets[pos], size_average=False)
 
-        pos = cls_targets.permute(0,1,3,4,2).contiguous().view(-1,20) > 0
-        cls_loss = F.smooth_l1_loss(cls_preds[pos], cls_targets2[pos], size_average=False)
-
-        print('%f %f+%f %f' % (loc_loss.data[0]/num_pos, pos_iou_loss.data[0]/num_pos, neg_iou_loss.data[0]/num_pos, cls_loss.data[0]/num_pos), end=' ')
+        print('%f %f %f' % (loc_loss.data[0]/num_pos, iou_loss.data[0]/num_pos, cls_loss.data[0]/num_pos), end=' ')
         return (loc_loss + iou_loss + cls_loss) / num_pos
